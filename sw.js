@@ -1,7 +1,7 @@
 const CACHE_NAME = "nutrition-app-cache-v1";
 const urlsToCache = [
   "./",
-  "./index.html",
+  "./nutrition.html",
   "./manifest.json",
   // אם יש לך קבצים נוספים (כמו תמונות, קבצי CSS חיצוניים וכו'), הוסף אותם כאן
 ];
