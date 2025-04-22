@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מעקב תזונה אישי</title>
+  <!-- הגדרת צבע נושא (Theme Color) עבור PWA -->
+  <meta name="theme-color" content="#4CAF50">
+  <!-- קישור לקובץ manifest.json -->
+  <link rel="manifest" href="manifest.json">
+  <style>
+    /* Reset וסגנונות בסיסיים */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      background-color: #f2f2f2;
+    }
+    header {
+      background-color: #4CAF50;
+      padding: 20px;
+      text-align: center;
+      color: #fff;
+    }
+    nav {
+      background-color: #333;
+    }
+    nav ul {
+      list-style: none;
+      display: flex;
+      justify-content: center;
+    }
+    nav ul li {
+      margin: 0 15px;
+    }
+    nav ul li a {
+      text-decoration: none;
+      color: #fff;
+      font-weight: bold;
+      display: block;
+      padding: 10px 15px;
+    }
+    nav ul li a:hover {
+      background-color: #555;
+    }
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    h2 {
+      margin-bottom: 15px;
+      font-size: 24px;
+      color: #333;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    form input, form select, form button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    form button {
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    form button:hover {
+      opacity: 0.9;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+    }
+    tfoot td {
+      font-weight: bold;
+    }
+    .hidden {
+      display: none;
+    }
+    .message {
+      text-align: center;
+      color: green;
+      font-weight: bold;
+    }
+    /* עיצוב למשטח הגרף */
+    #chartContainer {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+  </style>
+  <!-- טעינת ספריית Chart.js מה-CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>מעקב תזונה אישי</h1>
+  <p>ניהול נתונים אישיים, מאגר מזון, ארוחות יומיות וגרף קלוריות</p>
+</header>
+
+<nav>
+  <ul>
+    <li><a href="#" onclick="switchSection('personalSection'); return false;">נתונים אישיים</a></li>
+    <li><a href="#" onclick="switchSection('foodRepoSection'); return false;">מאגר מזון</a></li>
+    <li><a href="#" onclick="switchSection('mealSection'); return false;">ניהול ארוחות</a></li>
+    <li><a href="#" onclick="switchSection('chartSection'); return false;">גרף קלוריות</a></li>
+  </ul>
+</nav>
+
+<!-- נתונים אישיים -->
+<div class="container" id="personalSection">
+  <h2>נתונים אישיים</h2>
+  <form id="personalForm">
+    <select id="gender" required>
+      <option value="">-- בחר מגדר --</option>
+      <option value="male">זכר</option>
+      <option value="female">נקבה</option>
+    </select>
+    <input type="number" id="age" placeholder="גיל" required>
+    <input type="number" id="height" placeholder="גובה בסנטימטרים" required>
+    <input type="number" id="weight" placeholder="משקל בקילוגרמים" required>
+    <input type="number" id="weightGoal" placeholder="מטרת משקל (בק"ג)" required>
+    <!-- שדה חדש: רמת פעילות -->
+    <select id="activityLevel" required>
+      <option value="">-- בחר רמת פעילות --</option>
+      <option value="1.2">נמוכה (מעט פעילות)</option>
+      <option value="1.375">קלה (פעילות קלה 1-3 ימים בשבוע)</option>
+      <option value="1.55">בינונית (פעילות בינונית 3-5 ימים בשבוע)</option>
+      <option value="1.725">גבוהה (פעילות גבוהה 6-7 ימים בשבוע)</option>
+      <option value="1.9">מאוד גבוהה (אימון אינטנסיבי)</option>
+    </select>
+    <button type="submit">עדכן נתונים אישיים</button>
+  </form>
+  <div id="personalMessage" class="message"></div>
+</div>
+
+<!-- מאגר מזון -->
+<div class="container hidden" id="foodRepoSection">
+  <h2>הוסף מוצר למאגר המזון</h2>
+  <form id="foodRepoForm">
+    <!-- שדה נסתר לשמירת מזהה המוצר בעת עריכה -->
+    <input type="hidden" id="repoProductId" value="">
+    <input type="text" id="repoProductName" placeholder="שם המוצר" required>
+    <input type="text" id="repoServing" placeholder="יחידת הגשה (לדוגמא, 100 גרם, גביע)" required>
+    <input type="number" id="repoCalories" placeholder="קלוריות ליחידת הגשה" step="any" required>
+    <input type="number" id="repoProtein" placeholder="חלבונים ליחידת הגשה" step="any" required>
+    <input type="number" id="repoCarbs" placeholder="פחמימות ליחידת הגשה" step="any" required>
+    <input type="number" id="repoFat" placeholder="שומנים ליחידת הגשה" step="any" required>
+    <!-- שדה קטגוריה -->
+    <select id="repoCategory" required>
+      <option value="">-- בחר קטגוריה --</option>
+      <option value="מוצרי חלב">מוצרי חלב</option>
+      <option value="בשר/עוף/דגים">בשר/עוף/דגים</option>
+      <option value="קטניות">קטניות</option>
+      <option value="פחמימות">פחמימות</option>
+      <option value="פירות וירקות">פירות וירקות</option>
+      <option value="אחר">אחר</option>
+    </select>
+    <button type="submit" id="foodRepoSubmitButton">הוסף מוצר</button>
+  </form>
+  <div id="repoMessage" class="message"></div>
+  
+  <!-- קטלוג מוצרים -->
+  <h2>קטלוג מוצרי מזון</h2>
+  <table id="foodRepoTable">
+    <thead>
+      <tr>
+        <th>שם מוצר</th>
+        <th>יחידת הגשה</th>
+        <th>קטגוריה</th>
+        <th>קלוריות</th>
+        <th>חלבונים</th>
+        <th>פחמימות</th>
+        <th>שומנים</th>
+        <th>פעולות</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- רשימות המוצרים יוצגו כאן -->
+    </tbody>
+  </table>
+</div>
+
+<!-- ניהול ארוחות -->
+<div class="container hidden" id="mealSection">
+  <h2>הוסף ארוחה יומית</h2>
+  <form id="mealForm">
+    <select id="mealProductSelect" required>
+      <option value="">-- בחר מוצר מהמאגר --</option>
+      <!-- אפשרויות יתמלאו דינאמית -->
+    </select>
+    <!-- שדה כמות עם יכולת להזין ערכים חלקיים -->
+    <input type="number" id="mealQuantity" placeholder="כמות (מספר יחידות)" value="1" min="0" step="any" required>
+    <button type="submit">הוסף לארוחה</button>
+  </form>
+  
+  <table id="mealTable">
+    <thead>
+      <tr>
+        <th>מוצר</th>
+        <th>כמות</th>
+        <th>יחידת הגשה</th>
+        <th>קלוריות</th>
+        <th>חלבונים</th>
+        <th>פחמימות</th>
+        <th>שומנים</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- פריטי הארוחה יוצגו כאן -->
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3">סה"כ</td>
+        <td id="totalCalories">0</td>
+        <td id="totalProteins">0</td>
+        <td id="totalCarbs">0</td>
+        <td id="totalFats">0</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- גרף קלוריות -->
+<div class="container hidden" id="chartSection">
+  <h2>גרף קלוריות יומיות</h2>
+  <p>צריכת קלוריות יומית מטרה: <span id="dailyCalTarget">0</span></p>
+  <p>קלוריות שנצרכו: <span id="calConsumed">0</span></p>
+  <p>קלוריות שנותרו: <span id="calRemaining">0</span></p>
+  <div id="chartContainer">
+    <canvas id="calorieChart"></canvas>
+  </div>
+</div>
+
+<script>
+  // משתנים גלובליים
+  let mealItems = [];
+  let calorieChart; // מופע Chart.js
+
+  // פונקציה למעבר בין הסעיפים עם הדפסת הודעת לוג
+  function switchSection(sectionId) {
+    console.log("Switching to section:", sectionId);
+    const sections = ['personalSection', 'foodRepoSection', 'mealSection', 'chartSection'];
+    sections.forEach(id => {
+      document.getElementById(id).classList.add('hidden');
+    });
+    document.getElementById(sectionId).classList.remove('hidden');
+    if(sectionId === 'chartSection'){
+      updateChart();
+    }
+  }
+
+  // ===== נתונים אישיים =====
+  document.getElementById('personalForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const gender = document.getElementById('gender').value;
+    const age = parseFloat(document.getElementById('age').value);
+    const height = parseFloat(document.getElementById('height').value);
+    const weight = parseFloat(document.getElementById('weight').value);
+    const weightGoal = parseFloat(document.getElementById('weightGoal').value);
+    const activityLevel = parseFloat(document.getElementById('activityLevel').value);
+    if(!gender || isNaN(age) || isNaN(height) || isNaN(weight) || isNaN(weightGoal) || isNaN(activityLevel)){
+      alert("יש למלא את כל השדות כראוי.");
+      return;
+    }
+    // חישוב בסיסי לפי נוסחת Mifflin‑St Jeor
+    let bmr;
+    if(gender === 'male'){
+      bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+    } else {
+      bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+    }
+    // הכפלת הבסיס לפי רמת הפעילות
+    let dailyCalories = Math.round(bmr * activityLevel);
+    const personalData = { gender, age, height, weight, weightGoal, activityLevel, dailyCalories };
+    localStorage.setItem('personalData', JSON.stringify(personalData));
+    document.getElementById('personalMessage').textContent = "נתונים אישיים עודכנו. צריכת קלוריות יומית: " + dailyCalories;
+    setTimeout(() => { document.getElementById('personalMessage').textContent = ""; }, 3000);
+    updateChart();
+  });
+
+  // ===== מאגר מזון =====
+  function getFoodRepo() {
+    const repo = localStorage.getItem('foodRepo');
+    return repo ? JSON.parse(repo) : [];
+  }
+  function saveFoodRepo(repo) {
+    localStorage.setItem('foodRepo', JSON.stringify(repo));
+  }
+  
+  // פונקציה למילוי תיבת הבחירה של מוצרים לארוחה
+  function populateMealProductSelect() {
+    const select = document.getElementById('mealProductSelect');
+    select.innerHTML = '<option value="">-- בחר מוצר מהמאגר --</option>';
+    const repo = getFoodRepo();
+    repo.forEach(product => {
+      const option = document.createElement('option');
+      option.value = product.id;
+      option.textContent = product.name + " (" + product.serving + ")";
+      select.appendChild(option);
+    });
+  }
+  
+  // פונקציה לעדכון טבלת הקטלוג במאגר המזון כולל כפתור עריכה
+  function updateFoodRepoTable() {
+    const tableBody = document.querySelector('#foodRepoTable tbody');
+    tableBody.innerHTML = "";
+    const repo = getFoodRepo();
+    repo.forEach(product => {
+      const row = document.createElement('tr');
+      
+      const nameCell = document.createElement('td');
+      nameCell.textContent = product.name;
+      row.appendChild(nameCell);
+      
+      const servingCell = document.createElement('td');
+      servingCell.textContent = product.serving;
+      row.appendChild(servingCell);
+      
+      const categoryCell = document.createElement('td');
+      categoryCell.textContent = product.category;
+      row.appendChild(categoryCell);
+      
+      const caloriesCell = document.createElement('td');
+      caloriesCell.textContent = product.calories;
+      row.appendChild(caloriesCell);
+      
+      const proteinCell = document.createElement('td');
+      proteinCell.textContent = product.protein;
+      row.appendChild(proteinCell);
+      
+      const carbsCell = document.createElement('td');
+      carbsCell.textContent = product.carbs;
+      row.appendChild(carbsCell);
+      
+      const fatCell = document.createElement('td');
+      fatCell.textContent = product.fat;
+      row.appendChild(fatCell);
+      
+      // עמודת פעולות עם כפתור "ערוך"
+      const actionsCell = document.createElement('td');
+      const editButton = document.createElement('button');
+      editButton.textContent = "ערוך";
+      editButton.style.cursor = "pointer";
+      editButton.onclick = function() {
+        editProduct(product.id);
+      };
+      actionsCell.appendChild(editButton);
+      row.appendChild(actionsCell);
+      
+      tableBody.appendChild(row);
+    });
+  }
+  
+  // פונקציה לעריכת מוצר
+  function editProduct(id) {
+    const repo = getFoodRepo();
+    const product = repo.find(p => p.id == id);
+    if(product) {
+      document.getElementById('repoProductId').value = product.id;
+      document.getElementById('repoProductName').value = product.name;
+      document.getElementById('repoServing').value = product.serving;
+      document.getElementById('repoCalories').value = product.calories;
+      document.getElementById('repoProtein').value = product.protein;
+      document.getElementById('repoCarbs').value = product.carbs;
+      document.getElementById('repoFat').value = product.fat;
+      document.getElementById('repoCategory').value = product.category;
+      document.getElementById('foodRepoSubmitButton').textContent = "עדכן מוצר";
+    }
+  }
+  
+  // אירוע שליחת טופס מאגר המזון
+  document.getElementById('foodRepoForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const name = document.getElementById('repoProductName').value.trim();
+    const serving = document.getElementById('repoServing').value.trim();
+    const calories = parseFloat(document.getElementById('repoCalories').value);
+    const protein = parseFloat(document.getElementById('repoProtein').value);
+    const carbs = parseFloat(document.getElementById('repoCarbs').value);
+    const fat = parseFloat(document.getElementById('repoFat').value);
+    const category = document.getElementById('repoCategory').value;
+    
+    if(!name || !serving || isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fat) || !category){
+      alert("יש למלא את כל השדות כראוי.");
+      return;
+    }
+    
+    const repo = getFoodRepo();
+    const productId = document.getElementById('repoProductId').value;
+    
+    if(productId) {
+      // עדכון מוצר קיים
+      const index = repo.findIndex(p => p.id == productId);
+      if(index !== -1) {
+        repo[index] = { id: Number(productId), name, serving, calories, protein, carbs, fat, category };
+        saveFoodRepo(repo);
+        updateFoodRepoTable();
+        populateMealProductSelect();
+        document.getElementById('foodRepoForm').reset();
+        document.getElementById('repoProductId').value = "";
+        document.getElementById('foodRepoSubmitButton').textContent = "הוסף מוצר";
+        document.getElementById('repoMessage').textContent = "המוצר עודכן בהצלחה!";
+        setTimeout(() => { document.getElementById('repoMessage').textContent = ""; }, 3000);
+      }
+    } else {
+      // הוספת מוצר חדש
+      const id = Date.now();
+      const newProduct = { id, name, serving, calories, protein, carbs, fat, category };
+      repo.push(newProduct);
+      saveFoodRepo(repo);
+      populateMealProductSelect();
+      updateFoodRepoTable();
+      document.getElementById('foodRepoForm').reset();
+      document.getElementById('repoMessage').textContent = "המוצר נוסף בהצלחה!";
+      setTimeout(() => { document.getElementById('repoMessage').textContent = ""; }, 3000);
+    }
+  });
+
+  // ===== ניהול ארוחות =====
+  document.getElementById('mealForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const productId = parseInt(document.getElementById('mealProductSelect').value);
+    // שימוש ב-parseFloat כדי לאפשר כמויות חלקיות
+    const quantity = parseFloat(document.getElementById('mealQuantity').value);
+    if(!productId || quantity <= 0){
+      alert("יש לבחור מוצר ולציין כמות תקינה (ערך חיובי, גם חלקי)!");
+      return;
+    }
+    const repo = getFoodRepo();
+    const product = repo.find(p => p.id === productId);
+    if(!product){
+      alert("המוצר לא נמצא במאגר!");
+      return;
+    }
+    const existingItem = mealItems.find(item => item.product.id === productId);
+    if(existingItem){
+      existingItem.quantity += quantity;
+    } else {
+      mealItems.push({ product, quantity });
+    }
+    updateMealTable();
+    document.getElementById('mealForm').reset();
+    updateChart();
+  });
+  
+  function updateMealTable() {
+    const tbody = document.querySelector('#mealTable tbody');
+    tbody.innerHTML = "";
+    let totalCalories = 0, totalProteins = 0, totalCarbs = 0, totalFats = 0;
+    mealItems.forEach(item => {
+      const row = document.createElement('tr');
+      // שם מוצר
+      const nameCell = document.createElement('td');
+      nameCell.textContent = item.product.name;
+      row.appendChild(nameCell);
+      // כמות
+      const qtyCell = document.createElement('td');
+      qtyCell.textContent = item.quantity;
+      row.appendChild(qtyCell);
+      // יחידת הגשה
+      const servingCell = document.createElement('td');
+      servingCell.textContent = item.product.serving;
+      row.appendChild(servingCell);
+      // קלוריות
+      const cal = item.product.calories * item.quantity;
+      totalCalories += cal;
+      const calCell = document.createElement('td');
+      calCell.textContent = cal.toFixed(2);
+      row.appendChild(calCell);
+      // חלבונים
+      const prot = item.product.protein * item.quantity;
+      totalProteins += prot;
+      const protCell = document.createElement('td');
+      protCell.textContent = prot.toFixed(2);
+      row.appendChild(protCell);
+      // פחמימות
+      const carb = item.product.carbs * item.quantity;
+      totalCarbs += carb;
+      const carbCell = document.createElement('td');
+      carbCell.textContent = carb.toFixed(2);
+      row.appendChild(carbCell);
+      // שומנים
+      const fatVal = item.product.fat * item.quantity;
+      totalFats += fatVal;
+      const fatCell = document.createElement('td');
+      fatCell.textContent = fatVal.toFixed(2);
+      row.appendChild(fatCell);
+      tbody.appendChild(row);
+    });
+    document.getElementById('totalCalories').textContent = totalCalories.toFixed(2);
+    document.getElementById('totalProteins').textContent = totalProteins.toFixed(2);
+    document.getElementById('totalCarbs').textContent = totalCarbs.toFixed(2);
+    document.getElementById('totalFats').textContent = totalFats.toFixed(2);
+  }
+
+  // ===== גרף קלוריות =====
+  function updateChart() {
+    const personalData = JSON.parse(localStorage.getItem('personalData'));
+    if(!personalData) {
+      document.getElementById('dailyCalTarget').textContent = "0";
+      document.getElementById('calConsumed').textContent = "0";
+      document.getElementById('calRemaining').textContent = "0";
+      return;
+    }
+    const dailyTarget = personalData.dailyCalories;
+    let consumed = 0;
+    mealItems.forEach(item => {
+      consumed += item.product.calories * item.quantity;
+    });
+    const remaining = Math.max(dailyTarget - consumed, 0);
+    document.getElementById('dailyCalTarget').textContent = dailyTarget;
+    document.getElementById('calConsumed').textContent = consumed.toFixed(2);
+    document.getElementById('calRemaining').textContent = remaining.toFixed(2);
+    const ctx = document.getElementById('calorieChart').getContext('2d');
+    if(calorieChart) {
+      calorieChart.data.datasets[0].data = [consumed, remaining];
+      calorieChart.update();
+    } else {
+      calorieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['נצרך', 'נותר'],
+          datasets: [{
+            data: [consumed, remaining],
+            backgroundColor: ['#FF6384', '#36A2EB']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // בעת טעינת הדף
+  window.onload = function() {
+    populateMealProductSelect();
+    updateFoodRepoTable();
+    updateChart();
+  };
+
+  // רישום Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('sw.js')
+        .then(function(registration) {
+          console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch(function(error) {
+          console.error('Service Worker registration failed:', error);
+        });
+    });
+  }
+</script>
+
+</body>
+</html>
